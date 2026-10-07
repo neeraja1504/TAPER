@@ -12,7 +12,7 @@
  */
 
 // Public link to the TAPER reader, e.g. "https://<username>.github.io/<repo-name>/".
-const TAPER_URL = "";
+const TAPER_URL = "https://neeraja1504.github.io/TAPER/";
 
 const LANGUAGES = [
   "Vietnamese · Tiếng Việt",

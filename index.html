@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Literata:opsz,wght@7..72,400;7..72,600&family=Noto+Sans+Devanagari:wght@400;600&family=Noto+Sans+KR:wght@400;600&family=Noto+Sans+SC:wght@400;600&display=swap">
 <style>
-/* Layout: a reading desk. Controls on top, the two language panels side by side, the study check-in underneath. */
+/* Layout: a reading desk. Controls on top, the two language panels side by side. */
 :root {
   --bg: #f5f6f8;
   --surface: #ffffff;
@@ -135,18 +135,6 @@ details.custom .row { margin-top: 10px; }
 .pop .en { color: var(--english); font-weight: 600; }
 .pop .na { color: var(--native); font-weight: 600; font-size: 16px; }
 
-/* check-in, cards */
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 20px; display: grid; gap: 14px; min-width: 0; }
-.card h3 { font-size: 16px; }
-.card p.hint { margin: 0; color: var(--muted); font-size: 14px; }
-.q { display: grid; gap: 6px; }
-.q legend { font-weight: 500; padding: 0; margin-bottom: 4px; }
-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
-.opts { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; }
-.opts label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
-.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px 24px; }
-.result { font-size: 14px; }
-.result.ok { color: var(--ok); } .result.bad { color: var(--warn); }
 .note { font-size: 13px; color: var(--muted); border-left: 3px solid var(--native-chip); padding: 4px 10px; background: var(--native-soft); border-radius: 0 6px 6px 0; }
 .status { font-size: 14px; color: var(--muted); }
 .status.bad { color: var(--warn); }
@@ -218,17 +206,6 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
       <div class="share-top"><span>Native-language share of what the reader sees</span><span><strong id="sharePct">0%</strong> native · <strong id="lookups">0</strong> term lookups this passage</span></div>
       <div class="bar"><div class="fill" id="shareFill"></div><div class="mark" id="shareMark"></div></div>
       <div class="share-foot"><span class="n" id="langEnd">Vietnamese</span><span class="weeks" id="weekLabel">Week 1 · Week 6 · Week 12</span><span class="e">English</span></div>
-    </div>
-
-    <div class="row" id="doneRow"><button class="btn primary" id="doneReading">Done reading: start check-in</button><span class="status">The text is hidden during the check-in so answers come from memory.</span></div>
-
-    <div class="card" id="checkin" hidden>
-      <div>
-        <h3>Check your understanding</h3>
-        <p class="hint">Answer from memory to see how much you understood. Then go back to the text or pick another passage or level.</p>
-      </div>
-      <div id="quiz" class="two"></div>
-      <div class="row"><button class="btn primary" id="submitCheck">Check my answers</button><button class="btn" id="backToText">Back to the text</button><span class="result" id="checkResult"></span></div>
     </div>
   </section>
 </div>
@@ -510,37 +487,12 @@ function renderControls() {
   $("level").style.opacity = state.custom ? .5 : 1;
 }
 
-function renderQuiz() {
-  const p = passage(), q = $("quiz");
-  q.replaceChildren();
-  (p.quiz || []).forEach((item, qi) => {
-    const fs = document.createElement("fieldset"); fs.className = "q";
-    const lg = document.createElement("legend"); lg.textContent = `${qi + 1}. ${item.q}`; fs.append(lg);
-    const opts = document.createElement("div"); opts.className = "opts"; opts.style.display = "grid"; opts.style.gap = "4px";
-    item.options.forEach((o, oi) => {
-      const lab = document.createElement("label");
-      const r = document.createElement("input"); r.type = "radio"; r.name = "quiz" + qi; r.value = oi; r.id = `quiz${qi}_${oi}`;
-      lab.append(r, " " + o); opts.append(lab);
-    });
-    fs.append(opts); q.append(fs);
-  });
-  if (!(p.quiz || []).length) {
-    const n = document.createElement("p"); n.className = "hint"; n.style.margin = 0;
-    n.textContent = "This passage has no comprehension questions.";
-    q.append(n);
-  }
-  $("checkResult").textContent = ""; $("checkResult").className = "result";
-  setReading(true);
-  document.querySelectorAll('#checkin input[type="radio"]').forEach(r => { r.checked = false; });
-}
-
 /* ---------- interactions ---------- */
 function rerender() {
   store.set("ui", state);
-  setReading(true);
   renderControls(); renderReader();
 }
-$("passage").onchange = e => { state.passageId = e.target.value; renderControls(); renderQuiz(); rerender(); };
+$("passage").onchange = e => { state.passageId = e.target.value; renderControls(); rerender(); };
 $("lang").onchange = e => { state.lang = e.target.value; rerender(); };
 $("level").oninput = e => {
   const lv = LEVELS[+e.target.value];
@@ -592,27 +544,9 @@ document.addEventListener("click", e => {
 document.addEventListener("keydown", e => { if (e.key === "Escape") closePop(); });
 addEventListener("scroll", closePop, { passive: true });
 
-function setReading(on) {
-  ["panels", "doneRow"].forEach(id => { $(id).hidden = !on; });
-  document.querySelector(".share").hidden = !on;
-  $("checkin").hidden = on;
-}
-$("doneReading").onclick = () => setReading(false);
-$("backToText").onclick = () => setReading(true);
-$("submitCheck").onclick = () => {
-  const p = passage();
-  const pick = n => { const r = document.querySelector(`input[name="${n}"]:checked`); return r ? r.value : null; };
-  const answers = (p.quiz || []).map((item, i) => { const v = pick("quiz" + i); return v == null ? null : +v; });
-  if (answers.includes(null)) {
-    $("checkResult").className = "result bad"; $("checkResult").textContent = "Answer every question first."; return;
-  }
-  const correct = answers.filter((a, i) => a === p.quiz[i].answer).length;
-  $("checkResult").className = "result ok";
-  $("checkResult").textContent = answers.length ? `${correct} of ${answers.length} correct.` : "";
-};
 
 /* ---------- start ---------- */
-renderControls(); renderQuiz(); renderReader();
+renderControls(); renderReader();
 </script>
 </body>
 </html>
